@@ -103,7 +103,9 @@ public class Method implements ByteCode{
 		this.nameIndex = (short) Attribute.getUTF8ConstantIndex(name);
 		this.descriptorIndex = (short) Attribute.getUTF8ConstantIndex(signature);
 		this.accessFlags = new ArrayList<AccessFlag>();
-		this.accessFlags.addAll(accessFlags);
+		for (AccessFlag flag : flags) {
+			this.accessFlags.add(flag);
+		}
 		this.attributes = new Attribute[1];
 		this.attributes[0] = code;
 	}
