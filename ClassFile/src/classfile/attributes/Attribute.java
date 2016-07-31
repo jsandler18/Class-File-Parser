@@ -34,7 +34,7 @@ public abstract class Attribute implements ByteCode{
 	public static int getUTF8ConstantIndex (String content) {
 		int idx;
 		for (idx = 1; idx <= constantPoolList.size(); idx ++) {
-			if (constantPoolList.get(idx-1) instanceof UTF8Constant && ((UTF8Constant) constantPoolList.get(idx-1)).getContent().equals("LocalVariableTable")) {
+			if (constantPoolList.get(idx-1) instanceof UTF8Constant && ((UTF8Constant) constantPoolList.get(idx-1)).getContent().equals(content)) {
 				break;
 			}
 		}
