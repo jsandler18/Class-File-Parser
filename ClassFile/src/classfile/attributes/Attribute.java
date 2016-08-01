@@ -39,7 +39,7 @@ public abstract class Attribute implements ByteCode{
 			}
 		}
 		if (idx > constantPoolList.size()) {
-			constantPoolList.add(new UTF8Constant("LocalVariableTable".getBytes()));
+			constantPoolList.add(new UTF8Constant(content.getBytes()));
 		}
 		return idx;
 	}
@@ -62,9 +62,10 @@ public abstract class Attribute implements ByteCode{
 		//try to make the class by name, if unsuccessful, make an unkown attribute class
 		try {
 			result = (Attribute) Class.forName("classfile.attributes." +name+ "Attribute").getConstructor(dataScanner.getClass()).newInstance(dataScanner);
-		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
+		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | IllegalArgumentException | NoSuchMethodException | SecurityException | InvocationTargetException e) {
+
 			result = new UnknownAttribute(data);
-		}
+		} 
 		
 		
 		return result;
