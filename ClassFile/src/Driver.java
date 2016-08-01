@@ -9,7 +9,7 @@ import classfile.*;
 import classfile.Method.AccessFlag;
 import classfile.attributes.CodeAttribute;
 import classfile.attributes.LocalVariableTableAttribute;
-public class Driver {
+public class Driver extends ClassLoader {
 
 	public static void main(String[] args) throws IOException {
 		ClassFileWriter w = new ClassFileWriter("TestClass");
@@ -79,14 +79,26 @@ public class Driver {
 		String signature = "(II)I";
 	
 		Method m = new Method(flags , name, signature, code);
-		System.out.println(Arrays.toString(flags));
 		
 		w.addMethod(m);
+		byte [] classfile = w.toByteCode().array();
 		
-		
-		ClassFileReader r = new ClassFileReader(new DataInputStream(new ByteArrayInputStream(w.toByteCode().array())));//"C:\\Users\\jsand\\workspace\\ClassFile\\bin\\classfile\\ClassFileReader.class");
+		ClassFileReader r = new ClassFileReader(new DataInputStream(new ByteArrayInputStream(classfile)));//"C:\\Users\\jsand\\workspace\\ClassFile\\bin\\classfile\\ClassFileReader.class");
 		System.out.println(r.toString());
 
+		Driver loader = new Driver();
+		Class c = loader.publicDefineClass("TestClass", classfile, 0, classfile.length);
+		loader.publicResolveClass(c);
+		
+		System.out.println(Arrays.toString(c.getMethods()));
+	}
+	
+	public Class<?> publicDefineClass(String name, byte [] b, int off, int len) {
+		return super.defineClass(name, b, off, len);
+	}
+	
+	public void publicResolveClass(Class<?> c) {
+		super.resolveClass(c);
 	}
 
 }
