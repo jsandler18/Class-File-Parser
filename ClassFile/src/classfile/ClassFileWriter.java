@@ -91,9 +91,9 @@ public class ClassFileWriter implements ByteCode{
 		result.putInt(magic);
 		result.putShort(this.minor);
 		result.putShort(this.major);
-		result.putShort((short) this.constantPool.size());
+		result.putShort((short) (this.constantPool.size()+1));
 		for (ByteBuffer c : constants) {
-			result.put(c);
+			result.put(c.array());
 		}
 		
 		short flags = 0;
@@ -113,29 +113,21 @@ public class ClassFileWriter implements ByteCode{
 		result.putShort((short) this.fields.size());
 		
 		for (ByteBuffer f : fields) {
-			result.put(f);
+			result.put(f.array());
 		}
 		
 		result.putShort((short) this.methods.size());
 		
 		for (ByteBuffer m : methods) {
-			result.put(m);
+			result.put(m.array());
 		}
 		
 		result.putShort((short) this.attributes.size());
 		
 		for (ByteBuffer a : attributes) {
-			result.put(a);
+			result.put(a.array());
 		}
 		
-		System.out.println(this.methods.toString());
-		byte [] tmp = result.array();
-		for (int i = 0; i < tmp.length; i++) {
-			if (i%16 == 0) {
-				System.out.println();
-			}
-			System.out.print(String.format("%02x ",tmp[i]));
-		}
 		return result;
 	}
 	
