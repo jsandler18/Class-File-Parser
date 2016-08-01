@@ -36,6 +36,7 @@ public class CodeAttribute extends Attribute {
 		}
 	}
 	
+	private short codeAttributeIndex;
 	private short maxStack;
 	private short maxLocals;
 	private byte [] code;
@@ -48,6 +49,7 @@ public class CodeAttribute extends Attribute {
 	 * @throws IOException
 	 */
 	public CodeAttribute(DataInputStream dataScanner) throws IOException {
+		this.codeAttributeIndex = (short) Attribute.getUTF8ConstantIndex("Code");
 		this.maxStack = dataScanner.readShort();
 		this.maxLocals = dataScanner.readShort();
 		int codeLength = dataScanner.readInt();
@@ -74,7 +76,9 @@ public class CodeAttribute extends Attribute {
 	 * @param vars the local variables used in the bytecode
 	 */
 	public CodeAttribute(short maxStack, byte [] code, LocalVariableTableAttribute vars) {
+		this.codeAttributeIndex = (short) Attribute.getUTF8ConstantIndex("Code");
 		this.maxStack = maxStack;
+		this.maxLocals = (short) vars.getCount();
 		this.code = Arrays.copyOf(code, code.length);
 		this.exceptionTable = new ExceptionTableEntry[0];
 		this.attributes = new Attribute[1];
@@ -118,7 +122,7 @@ public class CodeAttribute extends Attribute {
 	@Override
 	public ByteBuffer toByteCode () {
 		//search for "Code" in the constant pool for its index. add it if not already there
-		int idx = Attribute.getUTF8ConstantIndex("Code");
+		int idx = this.codeAttributeIndex;
 		byte [][] attributeBuffers = new byte[this.attributes.length][];
 		int len = 0;
 		//get bytecode of each attribute
@@ -138,11 +142,11 @@ public class CodeAttribute extends Attribute {
 		result.put(this.code);
 		result.putShort((short) this.exceptionTable.length);
 		for (ExceptionTableEntry e : this.exceptionTable) {
-			result.put(e.toByteCode());
+			result.put(e.toByteCode().array());
 		}
 		result.putShort((short) this.attributes.length);
 		for (Attribute a : this.attributes) {
-			result.put(a.toByteCode());
+			result.put(a.toByteCode().array());
 		}
 		return result;
 		

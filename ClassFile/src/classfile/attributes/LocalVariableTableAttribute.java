@@ -52,8 +52,10 @@ public class LocalVariableTableAttribute extends Attribute {
 	
 
 	private LocalVariableTableEntry [] localVariableTable;
+	private short localVariableTableAttributeIndex;
 	
 	public LocalVariableTableAttribute(ArrayList <LocalVariableTableEntry> vars) {
+		this.localVariableTableAttributeIndex = (short) Attribute.getUTF8ConstantIndex("LocalVariableTable");
 		this.localVariableTable = new LocalVariableTableEntry [vars.size()];
 		for (int i = 0; i < vars.size(); i++) {
 			this.localVariableTable[i] = vars.get(i);
@@ -61,6 +63,7 @@ public class LocalVariableTableAttribute extends Attribute {
 	}
 	
 	public LocalVariableTableAttribute(DataInputStream dataScanner) throws IOException {
+		this.localVariableTableAttributeIndex = (short) Attribute.getUTF8ConstantIndex("LocalVariableTable");
 		short localVariableTableLength = dataScanner.readShort();
 		this.localVariableTable = new LocalVariableTableEntry[localVariableTableLength];
 		for (int i = 0; i < localVariableTableLength; i++) {
@@ -93,17 +96,21 @@ public class LocalVariableTableAttribute extends Attribute {
 	@Override
 	public ByteBuffer toByteCode() {
 		
-		int idx = Attribute.getUTF8ConstantIndex("LocalVariableTable");
+		int idx = this.localVariableTableAttributeIndex;
 		//6 bytes for tag and len, and 10 bytes for each local var entry
-		ByteBuffer result = ByteBuffer.allocate(6 + this.localVariableTable.length * 10);
+		ByteBuffer result = ByteBuffer.allocate(8 + this.localVariableTable.length * 10);
 		result.putShort((short) idx);
-		result.putInt(this.localVariableTable.length * 10);
+		result.putInt(this.localVariableTable.length * 10 + 2);
+		result.putShort((short) this.localVariableTable.length);
 		for (LocalVariableTableEntry e : this.localVariableTable) {
-			result.put(e.toByteCode());
+			result.put(e.toByteCode().array());
 		}
 		return result;
 		
 	}
 
+	public int getCount() {
+		return this.localVariableTable.length;
+	}
 
 }
