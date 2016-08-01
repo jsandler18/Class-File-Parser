@@ -28,6 +28,7 @@ public class StackMapTableAttribute extends Attribute {
 		
 	}
 	private class StackMapFrame {
+		
 		private StackMapFrameOptions option;
 		private int frameType;
 		private VerificationTypeInfo [] stack;
@@ -35,6 +36,7 @@ public class StackMapTableAttribute extends Attribute {
 		private short offsetDelta;
 		
 		public StackMapFrame(DataInputStream dataScanner) throws IOException {
+			
 			this.frameType = Byte.toUnsignedInt(dataScanner.readByte());
 			if (this.frameType < 64) {
 				this.offsetDelta = (short) this.frameType;
@@ -110,11 +112,13 @@ public class StackMapTableAttribute extends Attribute {
 		
 	}
 	private class VerificationTypeInfo {
+		
 		private VerificationTypeInfoOptions option;
 		private short cpoolIndex;
 		private short offset;
 		private byte tag;
 		public VerificationTypeInfo(DataInputStream dataScanner) throws IOException {
+			
 			this.tag = dataScanner.readByte();
 			switch (this.tag) {
 				case 0:
@@ -169,8 +173,10 @@ public class StackMapTableAttribute extends Attribute {
 	//all that stuff ^ was for union >:(
 	
 	private StackMapFrame [] entries;
+	private short stackMapFrameAttributeIndex;
 	
 	public StackMapTableAttribute(DataInputStream dataScanner) throws IOException {
+		this.stackMapFrameAttributeIndex = (short) Attribute.getUTF8ConstantIndex("StackMapTable");
 		short numEntries = dataScanner.readShort();
 		this.entries = new StackMapFrame[numEntries];
 		for (int i = 0; i <  numEntries; i++) {
