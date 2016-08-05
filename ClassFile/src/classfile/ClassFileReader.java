@@ -131,12 +131,13 @@ public class ClassFileReader {
 		return result.toString();
 	}
 	
-	public static int test (String t) {
-		int i = t.length();
-		float j = (float) (1.0f / i);
-		short k = 0;
-		k = (short) Math.floor(j + (float) Math.PI);
-		System.out.println(k);
-		return Short.toUnsignedInt(k);
-	}
+	
+	  public static int power (int base, int exp) {
+	  		int result = 1;
+	  		for (int i = 0; i < exp; i++) {
+	  			result *= base;
+	  		}
+	  		return result;
+	  }
+	 
 }

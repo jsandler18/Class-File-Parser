@@ -2,11 +2,17 @@ package classfile.attributes;
 
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.ByteChannel;
+import java.util.ArrayList;
+import java.util.Arrays;
+
+import classfile.ByteCode;
 
 public class StackMapTableAttribute extends Attribute {
 	
 	//try to replicate a C union
-	private enum StackMapFrameOptions{
+	public enum StackMapFrameOptions{
 		SameFrame,
 		SameLocals1StackItemFrame,
 		SameLocals1StackItemFrameExtended,
@@ -15,19 +21,28 @@ public class StackMapTableAttribute extends Attribute {
 		AppendFrame,
 		FullFrame
 	}
-	private enum VerificationTypeInfoOptions {
-		TopVariableInfo,
-		IntegerVariableInfo,
-		FloatVariableInfo,
-		LongVariableInfo,
-		DoubleVariableInfo,
-		NullVariableInfo,
-		UninitializedThisVariableInfo,
-		ObjectVariableInfo,
-		UninitializedVariableInfo
+	public enum VerificationTypeInfoOptions {
+		TopVariableInfo (0),
+		IntegerVariableInfo (1),
+		FloatVariableInfo (2),
+		LongVariableInfo (3),
+		DoubleVariableInfo (4),
+		NullVariableInfo (5),
+		UninitializedThisVariableInfo (6),
+		ObjectVariableInfo (7),
+		UninitializedVariableInfo (8);
+		
+		private final int tag;
+		private VerificationTypeInfoOptions(int tag) {
+			this.tag = tag;
+		}
+		
+		public int getTag() {
+			return this.tag;
+		}
 		
 	}
-	private class StackMapFrame {
+	public static class StackMapFrame implements ByteCode{
 		
 		private StackMapFrameOptions option;
 		private int frameType;
@@ -86,6 +101,38 @@ public class StackMapTableAttribute extends Attribute {
 			}
 		}
 		
+		
+		public StackMapFrame(int frametype, short offsetDelta, VerificationTypeInfo[] stack, VerificationTypeInfo[] locals) {
+			this.frameType = frametype;
+			this.offsetDelta = offsetDelta;
+			this.stack = Arrays.copyOf(stack, stack.length);
+			this.locals = Arrays.copyOf(locals, locals.length);
+			if (frametype < 64) {
+				this.option = StackMapFrameOptions.SameFrame;
+			}
+			else if (frametype < 128) {
+				this.option = StackMapFrameOptions.SameLocals1StackItemFrame;
+			}
+			else if (frametype == 247) {
+				this.option = StackMapFrameOptions.SameLocals1StackItemFrameExtended;
+			}
+			else if (frametype > 247 && frametype < 251) {
+				this.option = StackMapFrameOptions.ChopFrame;
+			}
+			else if (frametype == 251) {
+				this.option = StackMapFrameOptions.SameFrameExtended;
+			}
+			else if (frametype > 251 && frametype <255) {
+				this.option = StackMapFrameOptions.AppendFrame;
+			}
+			else if (frametype == 255) {
+				this.option = StackMapFrameOptions.FullFrame;
+			}
+			else {
+				throw new IllegalArgumentException("The tag is bad");
+			}
+		}
+		
 		public String toString() {
 			StringBuilder result = new StringBuilder();
 			result.append("Stack Map Frame :\n");
@@ -110,8 +157,87 @@ public class StackMapTableAttribute extends Attribute {
 			return result.toString();	
 		}
 		
+		public int getSize() {
+			int size = 0;
+			switch (this.option) {
+			case SameFrame:
+				return 1;
+			case SameLocals1StackItemFrame:
+				return (1 + this.stack[0].getSize());
+			case SameLocals1StackItemFrameExtended:
+				return (1 + 2 + this.stack[0].getSize());
+			case ChopFrame:
+			case SameFrameExtended:
+				return 3;
+			case AppendFrame:
+				for (VerificationTypeInfo ver : this.locals) {
+					size += ver.getSize();
+				}
+				return (1 + 2 + size);
+			case FullFrame:
+				for (VerificationTypeInfo ver : this.locals) {
+					size += ver.getSize();
+				}
+				for (VerificationTypeInfo ver : this.stack) {
+					size += ver.getSize();
+				}
+				return (1 + 2 + 2 + 2 + size);
+			}
+			return 0;
+		}
+
+		@Override
+		public ByteBuffer toByteCode() {
+			ByteBuffer result = null;
+			switch (this.option) {
+				case SameFrame:
+					result = ByteBuffer.allocate(this.getSize());
+					result.put((byte) this.frameType);
+					break;
+				case SameLocals1StackItemFrame:
+					result = ByteBuffer.allocate(this.getSize());
+					result.put((byte) this.frameType);
+					result.put(this.stack[0].toByteCode().array());
+					break;
+				case SameLocals1StackItemFrameExtended:
+					result = ByteBuffer.allocate(this.getSize());
+					result.put((byte) this.frameType);
+					result.putShort(this.offsetDelta);
+					result.put(this.stack[0].toByteCode().array());
+					break;
+				case ChopFrame:
+				case SameFrameExtended:
+					result = ByteBuffer.allocate(this.getSize());
+					result.put((byte) this.frameType);
+					result.putShort(offsetDelta);
+					break;
+				case AppendFrame:
+
+					result = ByteBuffer.allocate(this.getSize());
+					result.put((byte) this.frameType);
+					result.putShort(this.offsetDelta);
+					for (VerificationTypeInfo ver : this.locals) {
+						result.put(ver.toByteCode().array());
+					}
+				case FullFrame:
+					result = ByteBuffer.allocate(this.getSize());
+					result.put((byte) this.frameType);
+					result.putShort(offsetDelta);
+					result.putShort((short) this.locals.length);
+					for (VerificationTypeInfo ver : this.locals) {
+						result.put(ver.toByteCode().array());
+					}
+					result.putShort((short) this.stack.length);
+					for (VerificationTypeInfo ver : this.stack) {
+						result.put(ver.toByteCode().array());
+					}
+					
+			}
+			return result;
+		}
+		
 	}
-	private class VerificationTypeInfo {
+	public static class VerificationTypeInfo implements ByteCode{
 		
 		private VerificationTypeInfoOptions option;
 		private short cpoolIndex;
@@ -154,6 +280,28 @@ public class StackMapTableAttribute extends Attribute {
 			
 		}
 		
+		/**
+		 * 
+		 * @param option which type this verifies
+		 * @param offset indicates the offset, in the code array of the Code attribute that contains this StackMapTable attribute,
+		 *  of the new instruction that created the object being stored in the location. only required for UninitializedVariable, else doesn't matter
+		 * @param cpoolindex index into the constant pool of the object this verifies. only reauired for ObjectVariable, else doesn't matter
+		 */
+		public VerificationTypeInfo(VerificationTypeInfoOptions option, short offset, short cpoolindex) {
+			this.option = option;
+			this.offset = offset;
+			this.cpoolIndex = cpoolindex;
+		}
+		
+		public int getSize() {
+			if (this.option == VerificationTypeInfoOptions.UninitializedThisVariableInfo || this.option == VerificationTypeInfoOptions.ObjectVariableInfo) {
+				return 3;
+			}
+			else {
+				return 1;
+			}
+		}
+		
 		public String toString() {
 			StringBuilder result = new StringBuilder();
 			result.append("VerificationInfo :\n");
@@ -167,21 +315,39 @@ public class StackMapTableAttribute extends Attribute {
 			}
 			return result.toString();
 		}
+
+		@Override
+		public ByteBuffer toByteCode() {
+			ByteBuffer result = ByteBuffer.allocate(this.getSize());
+			result.put((byte) this.option.getTag());
+			if (this.option == VerificationTypeInfoOptions.UninitializedThisVariableInfo) {
+				result.putShort(this.offset);
+			}
+			else if (this.option == VerificationTypeInfoOptions.ObjectVariableInfo) {
+				result.putShort(this.cpoolIndex);
+			}
+			return result;
+		}
 		
 	}
 	
 	//all that stuff ^ was for union >:(
 	
-	private StackMapFrame [] entries;
+	private ArrayList<StackMapFrame> entries;
 	private short stackMapFrameAttributeIndex;
 	
 	public StackMapTableAttribute(DataInputStream dataScanner) throws IOException {
 		this.stackMapFrameAttributeIndex = (short) Attribute.getUTF8ConstantIndex("StackMapTable");
 		short numEntries = dataScanner.readShort();
-		this.entries = new StackMapFrame[numEntries];
+		this.entries = new ArrayList<StackMapFrame>(numEntries);
 		for (int i = 0; i <  numEntries; i++) {
-			this.entries[i] = new StackMapFrame(dataScanner);
+			 this.entries.add(new StackMapFrame(dataScanner));
 		}
+	}
+	
+	public StackMapTableAttribute(ArrayList<StackMapFrame> entries) {
+		this.stackMapFrameAttributeIndex = (short) Attribute.getUTF8ConstantIndex("StackMapTable");
+		this.entries = (ArrayList<StackMapFrame>) entries.clone();
 	}
 	
 	@Override
@@ -190,7 +356,7 @@ public class StackMapTableAttribute extends Attribute {
 		
 		result.append("AttributeInfo :\n");
 		result.append("\tName                   : Stack Map Table\n");
-		result.append("\tStack Map Table Length : " + this.entries.length + "\n");
+		result.append("\tStack Map Table Length : " + this.entries.size() + "\n");
 		result.append("\tStack Map Table        :\n\t");
 		for (StackMapFrame entry : this.entries) {
 			result.append(entry.toString().replace("\n", "\n\t"));
@@ -198,6 +364,24 @@ public class StackMapTableAttribute extends Attribute {
 		result.append("\n");
 		
 		return result.toString();
+	}
+	
+	@Override
+	public ByteBuffer toByteCode() {
+		int size = 0;
+		for (StackMapFrame entry : this.entries) {
+			size += entry.getSize();
+		}
+		ByteBuffer result = ByteBuffer.allocate(size + 2 + 4 + 2);
+		result.putShort(this.stackMapFrameAttributeIndex);
+		result.putInt(size + 2); //stack map frame table + the length of it
+		result.putShort((short) this.entries.size());
+		for (StackMapFrame entry : this.entries) {
+			result.put(entry.toByteCode().array());
+		}
+		
+		return result;
+		
 	}
 
 }

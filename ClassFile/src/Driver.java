@@ -1,6 +1,7 @@
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -9,6 +10,10 @@ import classfile.*;
 import classfile.Method.AccessFlag;
 import classfile.attributes.CodeAttribute;
 import classfile.attributes.LocalVariableTableAttribute;
+import classfile.attributes.LocalVariableTableAttribute.LocalVariableTableEntry;
+import classfile.attributes.StackMapTableAttribute;
+import classfile.attributes.StackMapTableAttribute.StackMapFrame;
+import classfile.attributes.StackMapTableAttribute.VerificationTypeInfoOptions;
 public class Driver extends ClassLoader {
 
 	public static void main(String[] args) throws IOException {
@@ -41,17 +46,17 @@ public class Driver extends ClassLoader {
 		};
 		//set this based on bytecode
 		short maxStack = 2;
-		ArrayList<LocalVariableTableAttribute.LocalVariableTableEntry> varlist = new ArrayList<LocalVariableTableAttribute.LocalVariableTableEntry>();
+		ArrayList<LocalVariableTableEntry> varlist = new ArrayList<LocalVariableTableEntry>();
 		//add vars here
 		varlist.add(new LocalVariableTableAttribute.LocalVariableTableEntry(
-				(short)9, 
-				(short)(21-9), 
+				(short)0, 
+				(short)(21), 
 				"base", 
 				"I", 
 				(short)0));
 		varlist.add(new LocalVariableTableAttribute.LocalVariableTableEntry(
-				(short)14, 
-				(short)(21-14), 
+				(short)0, 
+				(short)(21), 
 				"exp", 
 				"I", 
 				(short)1));
@@ -68,7 +73,23 @@ public class Driver extends ClassLoader {
 				"I", 
 				(short)3));
 		LocalVariableTableAttribute vars = new LocalVariableTableAttribute(varlist);
-		CodeAttribute code = new CodeAttribute(maxStack, bytecode, vars);
+		ArrayList<StackMapFrame> framelist = new ArrayList<StackMapFrame>();
+		framelist.add(new StackMapFrame(
+				255,
+				(short)7,//where the if statement jumps to
+				new StackMapTableAttribute.VerificationTypeInfo[] {},//stack is empty
+				new StackMapTableAttribute.VerificationTypeInfo[] {//2 local vars that are not params
+						new StackMapTableAttribute.VerificationTypeInfo(VerificationTypeInfoOptions.IntegerVariableInfo,(short)0,(short)0),
+						new StackMapTableAttribute.VerificationTypeInfo(VerificationTypeInfoOptions.IntegerVariableInfo,(short)0,(short)0)}));
+		framelist.add(new StackMapFrame(
+				255,
+				(short)9,//??
+				new StackMapTableAttribute.VerificationTypeInfo[] {},//stack is empty
+				new StackMapTableAttribute.VerificationTypeInfo[] {//2 local vars that are not params
+						new StackMapTableAttribute.VerificationTypeInfo(VerificationTypeInfoOptions.IntegerVariableInfo,(short)0,(short)0),
+						new StackMapTableAttribute.VerificationTypeInfo(VerificationTypeInfoOptions.IntegerVariableInfo,(short)0,(short)0)}));
+		StackMapTableAttribute stackmap = new StackMapTableAttribute(framelist);
+		CodeAttribute code = new CodeAttribute(maxStack, bytecode, vars, stackmap);
 		
 		AccessFlag[] flags = new AccessFlag[2];
 		flags[0] = AccessFlag.Public;
@@ -83,7 +104,7 @@ public class Driver extends ClassLoader {
 		w.addMethod(m);
 		byte [] classfile = w.toByteCode().array();
 		
-		ClassFileReader r = new ClassFileReader(new DataInputStream(new ByteArrayInputStream(classfile)));//"C:\\Users\\jsand\\workspace\\ClassFile\\bin\\classfile\\ClassFileReader.class");
+		ClassFileReader r = new ClassFileReader(new DataInputStream(new FileInputStream("/root/git/Class-File-Parser/ClassFile/bin/classfile/ClassFileReader.class")));
 		System.out.println(r.toString());
 
 		Driver loader = new Driver();

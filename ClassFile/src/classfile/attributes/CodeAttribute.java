@@ -75,14 +75,15 @@ public class CodeAttribute extends Attribute {
 	 * @param code the bytecode
 	 * @param vars the local variables used in the bytecode
 	 */
-	public CodeAttribute(short maxStack, byte [] code, LocalVariableTableAttribute vars) {
+	public CodeAttribute(short maxStack, byte [] code, LocalVariableTableAttribute vars, StackMapTableAttribute stackmap) {
 		this.codeAttributeIndex = (short) Attribute.getUTF8ConstantIndex("Code");
 		this.maxStack = maxStack;
 		this.maxLocals = (short) vars.getCount();
 		this.code = Arrays.copyOf(code, code.length);
 		this.exceptionTable = new ExceptionTableEntry[0];
-		this.attributes = new Attribute[1];
+		this.attributes = new Attribute[2];
 		this.attributes[0] = vars;
+		this.attributes[1] = stackmap;
 	}
 	
 	@Override
