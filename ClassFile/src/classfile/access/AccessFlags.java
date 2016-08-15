@@ -1,4 +1,4 @@
-package access;
+package classfile.access;
 
 import java.util.ArrayList;
 

@@ -1,4 +1,4 @@
-package access;
+package classfile.access;
 
 /**
  * This interface defines the requirements for a single access flag

@@ -1,4 +1,4 @@
-package access;
+package classfile.access;
 
 /**
  * Holds the possible access flags for a Nested Class
