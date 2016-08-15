@@ -1,7 +1,8 @@
 package classfile;
 
 import java.util.List;
-import access.AccessFlags;
+
+import classfile.access.AccessFlags;
 import classfile.attribute.AttributePool;
 import classfile.constant.ClassConstant;
 import classfile.constant.ConstantPool;

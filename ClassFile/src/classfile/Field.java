@@ -1,6 +1,6 @@
 package classfile;
 
-import access.AccessFlags;
+import classfile.access.AccessFlags;
 import classfile.attribute.AttributePool;
 import classfile.constant.UTF8Constant;
 
